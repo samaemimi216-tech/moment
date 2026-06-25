@@ -645,18 +645,15 @@ void write_csv(const string& path) {
 void write_fig3_dat(const string& path) {
     int ic = NX / 2;
     ofstream o(path);
-    o << "TITLE = \"Sun2012 Fig.3: Isotherms at x*=0.5\"\n";
+    o << "TITLE = \"Steady isotherms at x*=0.5\"\n";
     o << "VARIABLES = \"Y\", \"Z\", \"T\"\n";
-    const char* tl[NCURVE] = {"t=0.005","t=0.015","t=0.050","Steady"};
-    for (int k = 0; k < NCURVE; ++k) {
-        o << "ZONE T=\"" << tl[k] << "\", I=" << NY << ", J=" << NZ << ", F=POINT\n";
-        for (int kz = 0; kz < NZ; ++kz) {
-            double z = (kz + 0.5) * dz;
-            for (int jy = 0; jy < NY; ++jy) {
-                double y = (jy + 0.5) * dy;
-                o << scientific << setprecision(8) << y << " " << z << " "
-                  << T[kz][jy][ic] << "\n";
-            }
+    o << "ZONE T=\"Steady\", I=" << NY << ", J=" << NZ << ", F=POINT\n";
+    for (int kz = 0; kz < NZ; ++kz) {
+        double z = (kz + 0.5) * dz;
+        for (int jy = 0; jy < NY; ++jy) {
+            double y = (jy + 0.5) * dy;
+            o << scientific << setprecision(8) << y << " " << z << " "
+              << T[kz][jy][ic] << "\n";
         }
     }
 }
@@ -678,12 +675,6 @@ void run_one_case(const string& name, double Np, double omega,
         }
         radiation_dugks(omega, true);
         save_curve(k);
-        if (do_fig3) {
-            ostringstream ts;
-            ts << "output/fig3_t" << fixed << setprecision(3) << save_times[k] << ".dat";
-            write_fig3_dat(ts.str());
-            cout << "  wrote " << ts.str() << "\n";
-        }
         cout << "  saved t=" << save_times[k] << "\n";
     }
 
@@ -710,11 +701,15 @@ void run_one_case(const string& name, double Np, double omega,
     }
     radiation_dugks(omega, true);
     save_curve(NTIME);
-    if (do_fig3) { write_fig3_dat("output/fig3_steady.dat"); cout << "  wrote output/fig3_steady.dat\n"; }
     cout << "  steady after " << ss << " extra steps\n";
 #else
     save_curve(NTIME);
 #endif
+
+    if (do_fig3) {
+        write_fig3_dat("output/fig3_steady.dat");
+        cout << "  wrote output/fig3_steady.dat\n";
+    }
 
     write_csv("output/" + name + ".csv");
     cout << "wrote output/" << name << ".csv\n";
@@ -766,8 +761,8 @@ void run_sun2012_cases() {
     // Computed temperatures at selected positions
     run_table1();
 
-    // Fig.3: center-plane isotherms (Tecplot .dat)
-    cout << "\n=== Sun2012 Fig.3: Center-Plane Isotherms ===\n";
+    // Fig.3: steady center-plane isotherms (Tecplot .dat)
+    cout << "\n=== Fig.3: Steady Center-Plane Isotherms ===\n";
     EW = 1.0; TAU_L = 1.0;
     run_one_case("fig3", 0.01, 0.0, true);
 
@@ -797,7 +792,7 @@ void run_sun2012_cases() {
 
     cout << "\n==========================================\n";
     cout << "All Sun2012 cases complete.\n";
-    cout << "Fig.3 .dat: output/fig3_t*.dat\n";
+    cout << "Fig.3 .dat: output/fig3_steady.dat\n";
     cout << "Fig.4-7:    output/[4-7][ab].csv\n";
     cout << "Table 1:    output/table1.csv\n";
 }
