@@ -682,7 +682,7 @@ void write_fig3_files(
     const char labels[MAX_CURVES] = {'a', 'b', 'c', 'd'};
     for (int cid = 0; cid <= transient_count; ++cid) {
         ostringstream path, zone_label;
-        path << "output/4" << labels[cid] << ".dat";
+        path << "output/3" << labels[cid] << ".dat";
         if (cid < transient_count)
             zone_label << "t=" << defaultfloat << setprecision(12)
                        << transient_times[cid];
@@ -852,7 +852,7 @@ void run_sun2012_cases() {
 
     cout << "\n==========================================\n";
     cout << "All Sun2012 cases complete.\n";
-    cout << "Fig.3 .dat: output/4a.dat ... output/4d.dat\n";
+    cout << "Fig.3 .dat: output/3a.dat ... output/3d.dat\n";
     cout << "Fig.4-7:    output/[4-7][ab].csv\n";
     cout << "Table 1:    output/table1.csv\n";
 }
