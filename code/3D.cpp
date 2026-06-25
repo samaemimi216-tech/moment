@@ -336,7 +336,6 @@ void temperture(double dt) {
     rec_temperature();
 }
 
-// ---------- radiation solver ----------
 void calc_R_slopes() {
     for (int k = 0; k < NZ; ++k)
         for (int j = 0; j < NY; ++j)
@@ -722,7 +721,7 @@ void run_one_case(const string& name, double Np, double omega,
 }
 
 void run_table1() {
-    cout << "\n=== Sun2012 Table 1 ===\n";
+    cout << "\n=== Computed temperatures at selected positions ===\n";
     cout << "N=0.01 omega=0 tau_L=1 eps=1 t*=0.005\n";
     EW = 1.0; TAU_L = 1.0;
     double base_dt = CFL_T * dx / speed_t;
@@ -739,27 +738,18 @@ void run_table1() {
     radiation_dugks(0.0, true);
 
     double pos[3] = {0.25, 0.50, 0.75};
-    double ref[3] = {0.59911, 0.54084, 0.51622};
 
-    ofstream o("output/sun2012_table1.csv");
-    ofstream t("output/sun2012_table1.tex");
-    o << "y,present,Sun2012_18cubed_S8,relative_error_pct\n";
-    t << "y & Present & Sun2012 & Rel.err \\% \\\\\\n\\hline\n";
-    cout << "  y      Present     Sun2012      Rel.err%\n";
+    ofstream o("output/table1.csv");
+    o << "y,computed_temperature\n";
+    cout << "  y      Computed temperature\n";
     for (int n = 0; n < 3; ++n) {
         double val = sample_T(pos[n]);
-        double err = fabs(val - ref[n]) / ref[n] * 100.0;
         o << fixed << setprecision(2) << pos[n] << ","
-          << scientific << setprecision(12) << val << ","
-          << ref[n] << "," << fixed << setprecision(6) << err << "\n";
-        t << fixed << setprecision(2) << pos[n] << " & "
-          << scientific << setprecision(6) << val << " & "
-          << ref[n] << " & " << fixed << setprecision(4) << err << " \\\\\\n";
+          << scientific << setprecision(12) << val << "\n";
         cout << "  " << fixed << setprecision(2) << pos[n] << "  "
-             << scientific << setprecision(6) << val << "  " << ref[n] << "  "
-             << fixed << setprecision(4) << err << "%\n";
+             << scientific << setprecision(6) << val << "\n";
     }
-    cout << "wrote output/sun2012_table1.csv\n";
+    cout << "wrote output/table1.csv\n";
 }
 
 void run_sun2012_cases() {
@@ -773,7 +763,7 @@ void run_sun2012_cases() {
          << NTHETA << "x" << MAX_PHI << " angles\n";
     cout << "==========================================\n";
 
-    // Table 1
+    // Computed temperatures at selected positions
     run_table1();
 
     // Fig.3: center-plane isotherms (Tecplot .dat)
@@ -809,7 +799,7 @@ void run_sun2012_cases() {
     cout << "All Sun2012 cases complete.\n";
     cout << "Fig.3 .dat: output/fig3_t*.dat\n";
     cout << "Fig.4-7:    output/[4-7][ab].csv\n";
-    cout << "Table 1:    output/sun2012_table1.csv\n";
+    cout << "Table 1:    output/table1.csv\n";
 }
 
 int main() {
