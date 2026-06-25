@@ -806,8 +806,8 @@ void run_sun2012_cases() {
          << NTHETA << "x" << MAX_PHI << " angles\n";
     cout << "==========================================\n";
 
-    // Computed temperatures at selected positions
-    run_table1();
+    // Table 1 output is temporarily disabled.
+    // run_table1();
 
     // Fig.3: t*=0.005, 0.015, 0.050 and steady center-plane isotherms
     cout << "\n=== Sun2012 Fig.3: Center-Plane Isotherms ===\n";
@@ -856,7 +856,6 @@ void run_sun2012_cases() {
     cout << "All Sun2012 cases complete.\n";
     cout << "Fig.3 .dat: output/3a.dat ... output/3d.dat\n";
     cout << "Fig.4-7:    output/[4-7][ab].csv\n";
-    cout << "Table 1:    output/table1.csv\n";
 }
 
 int main() {
