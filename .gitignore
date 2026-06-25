@@ -1,0 +1,22 @@
+# Build products
+*.o
+*.obj
+*.exe
+*.out
+*.dSYM/
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# LaTeX temporary files
+*.aux
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.log
+*.out
+*.synctex.gz
