@@ -26,8 +26,8 @@ const int NTHETA = 8;
 const int MAX_PHI = 16;
 const int MAX_M = NTHETA * MAX_PHI;
 const int M = MAX_M;
-const int NTIME = 3;
-const int NCURVE = NTIME + 1;
+const int MAX_TRANSIENT_TIMES = 3;
+const int MAX_CURVES = MAX_TRANSIENT_TIMES + 1;
 const int NOUT = 41;
 const double CFL_T = 0.50;
 const double CFL_R = 0.80;
@@ -50,8 +50,6 @@ const double dz = 1.0 / NZ;
 const double tau_t = dx * dx;
 const double RT = 1.0 / tau_t;
 const double speed_t = sqrt(3.0 * RT);
-const double save_times[NTIME] = {0.005, 0.015, 0.05};
-
 struct Dir {
     double x, y, z, weight;
 };
@@ -86,7 +84,8 @@ double I_slope_z[NZ][NY][NX][M];              // 辐射强度的 z 向斜率
 double rate_r[NZ][NY][NX][M];                 // 辐射通量变化率
 
 // === 保存结果数组 ===
-double saved_temp[NCURVE][NOUT];
+double saved_temp[MAX_CURVES][NOUT];
+double saved_fig3[MAX_CURVES][NZ][NY];
 
 // === 运行状态 ===
 int thermal_step_counter = 0;
@@ -625,57 +624,91 @@ void save_curve(int cid) {
         saved_temp[cid][n] = sample_T((double)n / (NOUT - 1));
 }
 
-void write_csv(const string& path) {
+void save_fig3_plane(int cid) {
+    const int ic = NX / 2;
+    for (int k = 0; k < NZ; ++k)
+        for (int j = 0; j < NY; ++j)
+            saved_fig3[cid][k][j] = T[k][j][ic];
+}
+
+void write_csv(
+    const string& path, const double* transient_times, int transient_count
+) {
     ofstream o(path);
     o << "y";
-    for (int k = 0; k < NTIME; ++k) {
+    for (int k = 0; k < transient_count; ++k) {
         ostringstream lb;
-        lb << defaultfloat << setprecision(12) << save_times[k];
+        lb << defaultfloat << setprecision(12) << transient_times[k];
         o << ",t=" << lb.str();
     }
     o << ",Steady\n";
     for (int n = 0; n < NOUT; ++n) {
         o << fixed << setprecision(8) << (double)n / (NOUT - 1);
-        for (int k = 0; k < NCURVE; ++k)
+        for (int k = 0; k <= transient_count; ++k)
             o << "," << scientific << setprecision(12) << saved_temp[k][n];
         o << "\n";
     }
 }
 
-void write_fig3_dat(const string& path) {
-    int ic = NX / 2;
+double fig3_output_temperature(int cid, int kz, int jy) {
+    if (jy == 0) return TW;
+    if (jy == NY + 1) return TE;
+    if (kz == 0 || kz == NZ + 1) return TE;
+    return saved_fig3[cid][kz - 1][jy - 1];
+}
+
+void write_fig3_dat(
+    const string& path, const double* transient_times, int transient_count
+) {
     ofstream o(path);
-    o << "TITLE = \"Steady isotherms at x*=0.5\"\n";
+    o << "TITLE = \"Sun2012 Fig.3 isotherms at x*=0.5\"\n";
     o << "VARIABLES = \"Y\", \"Z\", \"T\"\n";
-    o << "ZONE T=\"Steady\", I=" << NY << ", J=" << NZ << ", F=POINT\n";
-    for (int kz = 0; kz < NZ; ++kz) {
-        double z = (kz + 0.5) * dz;
-        for (int jy = 0; jy < NY; ++jy) {
-            double y = (jy + 0.5) * dy;
-            o << scientific << setprecision(8) << y << " " << z << " "
-              << T[kz][jy][ic] << "\n";
+    for (int cid = 0; cid <= transient_count; ++cid) {
+        ostringstream label;
+        if (cid < transient_count)
+            label << "t=" << defaultfloat << setprecision(12)
+                  << transient_times[cid];
+        else
+            label << "Steady";
+
+        o << "ZONE T=\"" << label.str() << "\", I=" << NY + 2
+          << ", J=" << NZ + 2 << ", F=POINT\n";
+        for (int kz = 0; kz < NZ + 2; ++kz) {
+            const double z = kz == 0 ? 0.0
+                : (kz == NZ + 1 ? 1.0 : (kz - 0.5) * dz);
+            for (int jy = 0; jy < NY + 2; ++jy) {
+                const double y = jy == 0 ? 0.0
+                    : (jy == NY + 1 ? 1.0 : (jy - 0.5) * dy);
+                o << scientific << setprecision(8)
+                  << y << " " << z << " "
+                  << fig3_output_temperature(cid, kz, jy) << "\n";
+            }
         }
     }
 }
 
 // ---------- case runners ----------
-void run_one_case(const string& name, double Np, double omega,
-                  bool do_fig3 = false) {
+void run_one_case(
+    const string& name, double Np, double omega,
+    const double* transient_times, int transient_count,
+    bool do_fig3 = false
+) {
     double base_dt = CFL_T * dx / speed_t;
     thermal_step_counter = 0;
     radiation_needs_initial_convergence = true;
     ini_case();
 
     double time = 0.0;
-    for (int k = 0; k < NTIME; ++k) {
-        while (time + 1.0e-14 < save_times[k]) {
-            double dt = min(base_dt, save_times[k] - time);
+    for (int k = 0; k < transient_count; ++k) {
+        while (time + 1.0e-14 < transient_times[k]) {
+            double dt = min(base_dt, transient_times[k] - time);
             coupled_step(dt, Np, omega);
             time += dt;
         }
         radiation_dugks(omega, true);
         save_curve(k);
-        cout << "  saved t=" << save_times[k] << "\n";
+        if (do_fig3) save_fig3_plane(k);
+        cout << "  saved t=" << transient_times[k] << "\n";
     }
 
 #ifndef SMOKE_TEST
@@ -700,18 +733,24 @@ void run_one_case(const string& name, double Np, double omega,
         }
     }
     radiation_dugks(omega, true);
-    save_curve(NTIME);
+    save_curve(transient_count);
+    if (do_fig3) save_fig3_plane(transient_count);
     cout << "  steady after " << ss << " extra steps\n";
 #else
-    save_curve(NTIME);
+    save_curve(transient_count);
+    if (do_fig3) save_fig3_plane(transient_count);
 #endif
 
     if (do_fig3) {
-        write_fig3_dat("output/fig3_steady.dat");
-        cout << "  wrote output/fig3_steady.dat\n";
+        write_fig3_dat(
+            "output/fig3.dat", transient_times, transient_count
+        );
+        cout << "  wrote output/fig3.dat\n";
     }
 
-    write_csv("output/" + name + ".csv");
+    write_csv(
+        "output/" + name + ".csv", transient_times, transient_count
+    );
     cout << "wrote output/" << name << ".csv\n";
 }
 
@@ -748,6 +787,10 @@ void run_table1() {
 }
 
 void run_sun2012_cases() {
+    const double times_005_015[2] = {0.005, 0.015};
+    const double times_005_015_050[3] = {0.005, 0.015, 0.050};
+    const double times_005[1] = {0.005};
+
 #ifdef _WIN32
     mkdir("output");
 #else
@@ -761,38 +804,52 @@ void run_sun2012_cases() {
     // Computed temperatures at selected positions
     run_table1();
 
-    // Fig.3: steady center-plane isotherms (Tecplot .dat)
-    cout << "\n=== Fig.3: Steady Center-Plane Isotherms ===\n";
+    // Fig.3: t*=0.005, 0.015, 0.050 and steady center-plane isotherms
+    cout << "\n=== Sun2012 Fig.3: Center-Plane Isotherms ===\n";
     EW = 1.0; TAU_L = 1.0;
-    run_one_case("fig3", 0.01, 0.0, true);
+    run_one_case(
+        "fig3", 0.01, 0.0, times_005_015_050, 3, true
+    );
 
     // Fig.4: scattering albedo
     cout << "\n=== Sun2012 Fig.4: Scattering Albedo ===\n";
     EW = 1.0; TAU_L = 1.0;
-    cout << "--- 4a: omega=0.5 ---\n"; run_one_case("4a", 0.01, 0.5);
-    cout << "--- 4b: omega=0.9 ---\n"; run_one_case("4b", 0.01, 0.9);
+    cout << "--- 4a: omega=0.5 ---\n";
+    run_one_case("4a", 0.01, 0.5, times_005_015, 2);
+    cout << "--- 4b: omega=0.9 ---\n";
+    run_one_case("4b", 0.01, 0.9, times_005_015_050, 3);
 
     // Fig.5: conduction-radiation parameter
     cout << "\n=== Sun2012 Fig.5: N parameter ===\n";
     EW = 1.0; TAU_L = 1.0;
-    cout << "--- 5a: N=0.1 ---\n"; run_one_case("5a", 0.1, 0.0);
-    cout << "--- 5b: N=1.0 ---\n"; run_one_case("5b", 1.0, 0.0);
+    cout << "--- 5a: N=0.1 ---\n";
+    run_one_case("5a", 0.1, 0.0, times_005_015_050, 3);
+    cout << "--- 5b: N=1.0 ---\n";
+    run_one_case("5b", 1.0, 0.0, times_005_015_050, 3);
 
     // Fig.6: wall emissivity
     cout << "\n=== Sun2012 Fig.6: Wall Emissivity ===\n";
     TAU_L = 1.0;
-    cout << "--- 6a: eps_s=0.1 ---\n"; EW = 0.1; run_one_case("6a", 0.01, 0.0);
-    cout << "--- 6b: eps_s=0.5 ---\n"; EW = 0.5; run_one_case("6b", 0.01, 0.0);
+    cout << "--- 6a: eps_s=0.1 ---\n";
+    EW = 0.1;
+    run_one_case("6a", 0.01, 0.0, times_005_015, 2);
+    cout << "--- 6b: eps_s=0.5 ---\n";
+    EW = 0.5;
+    run_one_case("6b", 0.01, 0.0, times_005_015, 2);
 
     // Fig.7: optical thickness
     cout << "\n=== Sun2012 Fig.7: Optical Thickness ===\n";
     EW = 1.0;
-    cout << "--- 7a: tau_L=0.1 ---\n"; TAU_L = 0.1; run_one_case("7a", 0.01, 0.0);
-    cout << "--- 7b: tau_L=5.0 ---\n"; TAU_L = 5.0; run_one_case("7b", 0.01, 0.0);
+    cout << "--- 7a: tau_L=0.1 ---\n";
+    TAU_L = 0.1;
+    run_one_case("7a", 0.01, 0.0, times_005_015_050, 3);
+    cout << "--- 7b: tau_L=5.0 ---\n";
+    TAU_L = 5.0;
+    run_one_case("7b", 0.01, 0.0, times_005, 1);
 
     cout << "\n==========================================\n";
     cout << "All Sun2012 cases complete.\n";
-    cout << "Fig.3 .dat: output/fig3_steady.dat\n";
+    cout << "Fig.3 .dat: output/fig3.dat\n";
     cout << "Fig.4-7:    output/[4-7][ab].csv\n";
     cout << "Table 1:    output/table1.csv\n";
 }
