@@ -631,23 +631,21 @@ void save_fig3_plane(int cid) {
             saved_fig3[cid][k][j] = T[k][j][ic];
 }
 
-void write_curve_dat(
+void write_curve_csv(
     const string& path, const double* transient_times, int transient_count
 ) {
     ofstream o(path);
-    o << "TITLE = \"Sun2012 centerline temperature\"\n";
-    o << "VARIABLES = \"Y\"";
+    o << "y";
     for (int k = 0; k < transient_count; ++k) {
         ostringstream lb;
         lb << defaultfloat << setprecision(12) << transient_times[k];
-        o << ", \"T(t=" << lb.str() << ")\"";
+        o << ",t=" << lb.str();
     }
-    o << ", \"T(Steady)\"\n";
-    o << "ZONE I=" << NOUT << ", F=POINT\n";
+    o << ",Steady\n";
     for (int n = 0; n < NOUT; ++n) {
         o << fixed << setprecision(8) << (double)n / (NOUT - 1);
         for (int k = 0; k <= transient_count; ++k)
-            o << " " << scientific << setprecision(12) << saved_temp[k][n];
+            o << "," << scientific << setprecision(12) << saved_temp[k][n];
         o << "\n";
     }
 }
@@ -754,10 +752,10 @@ void run_one_case(
     }
 
     if (!do_fig3) {
-        write_curve_dat(
-            "output/" + name + ".dat", transient_times, transient_count
+        write_curve_csv(
+            "output/" + name + ".csv", transient_times, transient_count
         );
-        cout << "wrote output/" << name << ".dat\n";
+        cout << "wrote output/" << name << ".csv\n";
     }
 }
 
@@ -857,7 +855,7 @@ void run_sun2012_cases() {
     cout << "\n==========================================\n";
     cout << "All Sun2012 cases complete.\n";
     cout << "Fig.3 .dat: output/3a.dat ... output/3d.dat\n";
-    cout << "Fig.4-7:    output/[4-7][ab].dat\n";
+    cout << "Fig.4-7:    output/[4-7][ab].csv\n";
     cout << "Table 1:    output/table1.csv\n";
 }
 
