@@ -657,33 +657,39 @@ double fig3_output_temperature(int cid, int kz, int jy) {
     return saved_fig3[cid][kz - 1][jy - 1];
 }
 
-void write_fig3_dat(
-    const string& path, const double* transient_times, int transient_count
-) {
+void write_fig3_dat(const string& path, int cid, const string& label) {
     ofstream o(path);
     o << "TITLE = \"Sun2012 Fig.3 isotherms at x*=0.5\"\n";
     o << "VARIABLES = \"Y\", \"Z\", \"T\"\n";
-    for (int cid = 0; cid <= transient_count; ++cid) {
-        ostringstream label;
-        if (cid < transient_count)
-            label << "t=" << defaultfloat << setprecision(12)
-                  << transient_times[cid];
-        else
-            label << "Steady";
-
-        o << "ZONE T=\"" << label.str() << "\", I=" << NY + 2
-          << ", J=" << NZ + 2 << ", F=POINT\n";
-        for (int kz = 0; kz < NZ + 2; ++kz) {
-            const double z = kz == 0 ? 0.0
-                : (kz == NZ + 1 ? 1.0 : (kz - 0.5) * dz);
-            for (int jy = 0; jy < NY + 2; ++jy) {
-                const double y = jy == 0 ? 0.0
-                    : (jy == NY + 1 ? 1.0 : (jy - 0.5) * dy);
-                o << scientific << setprecision(8)
-                  << y << " " << z << " "
-                  << fig3_output_temperature(cid, kz, jy) << "\n";
-            }
+    o << "ZONE T=\"" << label << "\", I=" << NY + 2
+      << ", J=" << NZ + 2 << ", F=POINT\n";
+    for (int kz = 0; kz < NZ + 2; ++kz) {
+        const double z = kz == 0 ? 0.0
+            : (kz == NZ + 1 ? 1.0 : (kz - 0.5) * dz);
+        for (int jy = 0; jy < NY + 2; ++jy) {
+            const double y = jy == 0 ? 0.0
+                : (jy == NY + 1 ? 1.0 : (jy - 0.5) * dy);
+            o << scientific << setprecision(8)
+              << y << " " << z << " "
+              << fig3_output_temperature(cid, kz, jy) << "\n";
         }
+    }
+}
+
+void write_fig3_files(
+    const double* transient_times, int transient_count
+) {
+    const char labels[MAX_CURVES] = {'a', 'b', 'c', 'd'};
+    for (int cid = 0; cid <= transient_count; ++cid) {
+        ostringstream path, zone_label;
+        path << "output/4" << labels[cid] << ".dat";
+        if (cid < transient_count)
+            zone_label << "t=" << defaultfloat << setprecision(12)
+                       << transient_times[cid];
+        else
+            zone_label << "Steady";
+        write_fig3_dat(path.str(), cid, zone_label.str());
+        cout << "  wrote " << path.str() << "\n";
     }
 }
 
@@ -742,10 +748,7 @@ void run_one_case(
 #endif
 
     if (do_fig3) {
-        write_fig3_dat(
-            "output/fig3.dat", transient_times, transient_count
-        );
-        cout << "  wrote output/fig3.dat\n";
+        write_fig3_files(transient_times, transient_count);
     }
 
     write_csv(
@@ -849,7 +852,7 @@ void run_sun2012_cases() {
 
     cout << "\n==========================================\n";
     cout << "All Sun2012 cases complete.\n";
-    cout << "Fig.3 .dat: output/fig3.dat\n";
+    cout << "Fig.3 .dat: output/4a.dat ... output/4d.dat\n";
     cout << "Fig.4-7:    output/[4-7][ab].csv\n";
     cout << "Table 1:    output/table1.csv\n";
 }
