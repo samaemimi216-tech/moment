@@ -699,7 +699,8 @@ void run_one_case(
     const double* transient_times, int transient_count,
     bool do_fig3 = false
 ) {
-    double base_dt = CFL_T * dx / speed_t;
+    double base_dt =
+        CFL_T / (speed_t / dx + speed_t / dy + speed_t / dz);
     thermal_step_counter = 0;
     radiation_needs_initial_convergence = true;
     ini_case();
@@ -763,7 +764,8 @@ void run_table1() {
     cout << "\n=== Computed temperatures at selected positions ===\n";
     cout << "N=0.01 omega=0 tau_L=1 eps=1 t*=0.005\n";
     EW = 1.0; TAU_L = 1.0;
-    double base_dt = CFL_T * dx / speed_t;
+    double base_dt =
+        CFL_T / (speed_t / dx + speed_t / dy + speed_t / dz);
     thermal_step_counter = 0;
     radiation_needs_initial_convergence = true;
     ini_case();
