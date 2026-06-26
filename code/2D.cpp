@@ -38,10 +38,11 @@ const double RAD_SLOPE_FACTOR = 0.0;
 const double dx = 1.0 / NX;
 const double dy = 1.0 / NY;
 // Thermal DUGKS model parameters.
-// alpha*=tau_t*RT=1 is kept independent of the mesh.  This avoids the
-// traditional LBM diffusive scaling tau_t~dx^2 and lets dt follow CFL.
-const double tau_t = 1.0;
-const double RT = 1.0;
+// Following the reference DUGKS cavity code, RT is fixed at 1/3 so the
+// discrete particle speed is c=sqrt(3RT)=1.  The diffusivity is set by
+// alpha*=tau_t*RT=1, independent of mesh spacing.
+const double RT = 1.0 / 3.0;
+const double tau_t = 1.0 / RT;
 const double speed_t = 1.7320508075688772935 * sqrt(RT);
 
 const double save_times[NTIME] = {0.005, 0.015, 0.04};
