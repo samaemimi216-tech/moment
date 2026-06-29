@@ -107,19 +107,22 @@ def interpolate_panel(
 
 
 def color_ramp(values: np.ndarray) -> np.ndarray:
-    # Anchors are sampled from the existing pic/*.png figures so this contour
-    # panel sits in the same visual family as the line-plot figures.
+    # High-contrast anchors follow the Sun2012 contour style.  The fixed
+    # 0.5--1.0 scale is retained across all panels, so the colours sharpen the
+    # contour geometry without changing the reported data.
     stops = np.array(
         [
-            [0.50, 68, 69, 114],
-            [0.56, 80, 77, 113],
-            [0.62, 127, 200, 210],
-            [0.68, 185, 207, 161],
-            [0.74, 211, 211, 211],
-            [0.80, 204, 173, 204],
-            [0.86, 255, 164, 30],
-            [0.92, 247, 112, 105],
-            [1.00, 197, 85, 94],
+            [0.50, 42, 49, 143],
+            [0.55, 51, 82, 170],
+            [0.60, 45, 126, 196],
+            [0.65, 40, 190, 222],
+            [0.70, 111, 198, 138],
+            [0.75, 194, 218, 73],
+            [0.80, 247, 229, 30],
+            [0.85, 255, 176, 25],
+            [0.90, 248, 101, 47],
+            [0.95, 221, 42, 43],
+            [1.00, 150, 24, 30],
         ],
         dtype=float,
     )
